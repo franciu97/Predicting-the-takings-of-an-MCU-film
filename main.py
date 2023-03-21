@@ -7,40 +7,44 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import cross_val_score, GridSearchCV
 
 #Caricamento e analisi iniziale dei dati
 data = pd.read_csv('movie_info.csv')
 print(data.head())
+
 print(data.info())
 print(data.describe())
 
-# Correlation matrix
-corr_matrix = data.corr(numeric_only=True)
-sns.heatmap(corr_matrix, annot=True)
-plt.show()
+# Calcolo della matrice di correlazione
+corr_matrix = data.corr()
 
-#Pairplot
-sns.pairplot(data)
-plt.show()
+# Seleziona solo le correlazioni relative alla variabile target
+target_corr = corr_matrix['worldwide_collection_in_million_(USD)']
 
-# Eliminate le colonne meno rilevanti
-data = data.drop(['movie_title', 'release_date'], axis=1)
+# Stabilisce una soglia di correlazione (ad esempio, 0.1)
+threshold = 0.1
+
+# Seleziona le colonne con una correlazione superiore alla soglia
+selected_columns = target_corr[abs(target_corr) > threshold].index
+
+# Mantiene solo le colonne selezionate nel dataset
+data = data[selected_columns]
 
 # Preparazione del dataset
 X = data.drop('worldwide_collection_in_million_(USD)', axis=1)
 y = data['worldwide_collection_in_million_(USD)']
 
 # Divisione in train e test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=5)
 
 # Modelli da confrontare
 models = {
     'Linear Regression': LinearRegression(),
     'Support Vector Machine': SVR(),
-    'Decision Tree': DecisionTreeRegressor(random_state=42),
-    'Random Forest': RandomForestRegressor(random_state=42),
+    'Decision Tree': DecisionTreeRegressor(random_state=5),
+    'Random Forest': RandomForestRegressor(random_state=5),
 }
 
 # Addestramento e valutazione dei modelli
@@ -70,11 +74,18 @@ grid_search.fit(X, y)
 print('Best parameters:', grid_search.best_params_)
 
 # Addestramento e valutazione del modello ottimizzato
-best_rf = grid_search.best_estimator_
-best_rf.fit(X_train, y_train)
-y_pred = best_rf.predict(X_test)
-rmse = mean_squared_error(y_test, y_pred, squared=False)
-print(f'Optimized Random Forest RMSE: {rmse}')
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    rmse = mean_squared_error(y_test, y_pred, squared=False)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    print(f'{name} RMSE: {rmse}')
+    print(f'{name} MSE: {mse}')
+    print(f'{name} R²: {r2}')
+    print()
 
 # Distribuzione degli incassi
 sns.histplot(data['worldwide_collection_in_million_(USD)'], kde=True)
