@@ -19,6 +19,8 @@ print(data.describe())
 
 # Calcolo della matrice di correlazione
 corr_matrix = data.corr()
+sns.heatmap(corr_matrix, annot=True)
+plt.show()
 
 # Seleziona solo le correlazioni relative alla variabile target
 target_corr = corr_matrix['worldwide_collection_in_million_(USD)']
